@@ -39,6 +39,13 @@ export type TextEditorCommandResult = {
 	isError?: boolean;
 };
 
+export class TextEditorCommandExecutionError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "TextEditorCommandExecutionError";
+	}
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
@@ -85,6 +92,23 @@ function sanitizeError(error: unknown): string {
 	return "Unknown file system error";
 }
 
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+	return error instanceof Error && "code" in error;
+}
+
+function parseViewRange(viewRange: TextEditorInput["view_range"]): [number, number] | undefined {
+	if (!viewRange) {
+		return undefined;
+	}
+
+	const [startLine, endLine] = viewRange;
+	if (typeof startLine !== "number" || typeof endLine !== "number") {
+		return undefined;
+	}
+
+	return [startLine, endLine];
+}
+
 async function executeView(input: TextEditorInput): Promise<TextEditorCommandResult> {
 	const targetPath = input.path;
 	try {
@@ -98,7 +122,7 @@ async function executeView(input: TextEditorInput): Promise<TextEditorCommandRes
 		}
 
 		const contents = await readFile(targetPath, "utf-8");
-		const viewRange = input.view_range ? ([input.view_range[0], input.view_range[1]] as [number, number]) : undefined;
+		const viewRange = parseViewRange(input.view_range);
 		return success(formatRangeWithLineNumbers(contents, viewRange));
 	} catch (error: unknown) {
 		return failure(sanitizeError(error));
@@ -113,8 +137,10 @@ async function executeCreate(input: TextEditorInput): Promise<TextEditorCommandR
 	try {
 		await access(input.path);
 		return failure(`File already exists: ${input.path}`);
-	} catch {
-		// Path does not exist: expected case.
+	} catch (error: unknown) {
+		if (!isNodeError(error) || error.code !== "ENOENT") {
+			return failure(sanitizeError(error));
+		}
 	}
 
 	try {
@@ -136,16 +162,17 @@ async function executeStrReplace(input: TextEditorInput): Promise<TextEditorComm
 
 	try {
 		const contents = await readFile(input.path, "utf-8");
-		const occurrences = contents.split(input.old_str).length - 1;
-		if (occurrences === 0) {
+		const firstIndex = contents.indexOf(input.old_str);
+		if (firstIndex === -1) {
 			return failure("No match found for replacement");
 		}
 
-		if (occurrences > 1) {
+		const secondIndex = contents.indexOf(input.old_str, firstIndex + 1);
+		if (secondIndex !== -1) {
 			return failure("Multiple matches found; provide more context");
 		}
 
-		const replaced = contents.replace(input.old_str, input.new_str);
+		const replaced = `${contents.slice(0, firstIndex)}${input.new_str}${contents.slice(firstIndex + input.old_str.length)}`;
 		await writeFile(input.path, replaced, "utf-8");
 		return success(`File updated successfully at: ${input.path}`);
 	} catch (error: unknown) {
@@ -189,8 +216,6 @@ export async function executeTextEditorCommand(input: TextEditorInput): Promise<
 			return executeStrReplace(input);
 		case "insert":
 			return executeInsert(input);
-		default:
-			return failure(`Unsupported command: ${String(input.command)}`);
 	}
 }
 
@@ -271,7 +296,9 @@ export default function anthropicTextEditorExtension(pi: ExtensionAPI): void {
 				const result = await executeTextEditorCommand(params);
 				if (result.isError) {
 					const firstContent = result.content[0];
-					throw new Error(firstContent?.type === "text" ? firstContent.text : "Text editor command failed");
+					throw new TextEditorCommandExecutionError(
+						firstContent?.type === "text" ? firstContent.text : "Text editor command failed",
+					);
 				}
 
 				return {
