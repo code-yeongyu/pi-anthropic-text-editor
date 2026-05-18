@@ -59,7 +59,7 @@ describe("anthropic-text-editor extension", () => {
 			],
 		}) as { tools: Array<Record<string, unknown>> };
 
-		const nativeTools = result.tools.filter((tool) => tool.type === "text_editor_20250728");
+		const nativeTools = result.tools.filter((tool) => tool["type"] === "text_editor_20250728");
 		expect(nativeTools).toHaveLength(1);
 		expect(nativeTools[0]).toEqual({ type: "text_editor_20250728", name: "str_replace_editor" });
 	});

@@ -226,11 +226,11 @@ function sanitizeTools(tools: unknown[]): ToolDefinition[] {
 			continue;
 		}
 
-		const toolName = typeof tool.name === "string" ? tool.name : undefined;
+		const toolName = typeof tool["name"] === "string" ? tool["name"] : undefined;
 		const shouldStripTextEditorFunctionShape =
-			toolName === "str_replace_based_edit_tool" && !isTextEditorType(tool.type);
+			toolName === "str_replace_based_edit_tool" && !isTextEditorType(tool["type"]);
 		const shouldStripReadWriteEditFunctionShape =
-			(toolName === "read" || toolName === "write" || toolName === "edit") && !isTextEditorType(tool.type);
+			(toolName === "read" || toolName === "write" || toolName === "edit") && !isTextEditorType(tool["type"]);
 		if (!shouldStripTextEditorFunctionShape && !shouldStripReadWriteEditFunctionShape) {
 			sanitizedTools.push(tool);
 		}
@@ -261,9 +261,9 @@ export function addAnthropicTextEditorToPayload(api: Api | undefined, payload: u
 		return payload;
 	}
 
-	const tools = Array.isArray(payload.tools) ? payload.tools : [];
+	const tools = Array.isArray(payload["tools"]) ? payload["tools"] : [];
 	const sanitizedTools = sanitizeTools(tools);
-	const hasNativeTextEditor = sanitizedTools.some((tool) => isTextEditorType(tool.type));
+	const hasNativeTextEditor = sanitizedTools.some((tool) => isTextEditorType(tool["type"]));
 	if (!hasNativeTextEditor) {
 		sanitizedTools.push(ANTHROPIC_NATIVE_TEXT_EDITOR_TOOL);
 	}
