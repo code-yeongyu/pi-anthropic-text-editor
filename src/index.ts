@@ -1,6 +1,6 @@
 import { access, lstat, readdir, readFile, writeFile } from "node:fs/promises";
-import type { Api, TextContent } from "@mariozechner/pi-ai";
-import type { AgentToolResult, ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { Api, TextContent } from "@earendil-works/pi-ai";
+import type { AgentToolResult, ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { type Static, Type } from "typebox";
 
 type ToolDefinition = Record<string, unknown>;
