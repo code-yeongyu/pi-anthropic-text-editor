@@ -32,17 +32,16 @@ Truthy values for `PI_ANTHROPIC_TEXT_EDITOR`: `1`, `true`, `yes`, `on` (case-ins
 ## Installation
 
 ```bash
-# From npm (once published)
-pi install npm:pi-anthropic-text-editor
-
-# From git
 pi install git:github.com/code-yeongyu/pi-anthropic-text-editor
+```
 
-# Manual placement
+Alternatively, for development or direct testing:
+
+```bash
 git clone https://github.com/code-yeongyu/pi-anthropic-text-editor ~/.pi/agent/extensions/pi-anthropic-text-editor
-cd ~/.pi/agent/extensions/pi-anthropic-text-editor && npm install
+cd ~/.pi/agent/extensions/pi-anthropic-text-editor && bun install
 
-# Dev / one-shot test
+# One-shot test
 pi -e /path/to/pi-anthropic-text-editor/src/index.ts
 ```
 
